@@ -1,7 +1,5 @@
 package org.eu.redfolder.patrick.socket;
 
-import static org.eu.redfolder.patrick.threadPool.ThreadPool.pool;
-
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
@@ -54,8 +52,8 @@ public class Sockets {
     }
 
     public static void exchangeSocket(Socket a, Socket b) {
-        pool.execute(new Thread(() -> transfer(a, b)));
-        pool.execute(new Thread(() -> transfer(b, a)));
+        Thread.ofVirtual().start(() -> transfer(a, b));
+        Thread.ofVirtual().start(() -> transfer(b, a));
     }
 
     private static void transfer(Socket a, Socket b) {
