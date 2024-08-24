@@ -23,8 +23,8 @@ public class Socks5Server extends Thread {
             byte[] methods = new byte[nMethods];
             inputStream.read(methods);
             boolean supportNoAuth = false;
-            for (int i = 0; i < methods.length; i++) {
-                if (methods[i] == 0) {
+            for (byte b : methods) {
+                if (b == 0) {
                     supportNoAuth = true;
                     break;
                 }
