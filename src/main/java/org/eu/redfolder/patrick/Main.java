@@ -7,6 +7,8 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import static org.eu.redfolder.patrick.threadPool.ThreadPool.pool;
+
 public class Main {
     public static void main(String[] args) throws IOException {
         ServerSocket proxyServer = new ServerSocket(7080);
@@ -15,9 +17,9 @@ public class Main {
             InputStream inputStream = clientSocket.getInputStream();
             int firstByte = inputStream.read();
             if (firstByte == 0x05) {
-                new Socks5Server(clientSocket).start();
+                pool.execute(new Socks5Server(clientSocket));
             } else {
-                new HttpServer(firstByte, clientSocket).start();
+                pool.execute(new HttpServer(firstByte, clientSocket));
             }
         }
     }

@@ -1,11 +1,11 @@
 package org.eu.redfolder.patrick.http;
 
+import static org.eu.redfolder.patrick.socket.Sockets.transferSocket;
+
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-
-import static org.eu.redfolder.patrick.socket.Sockets.transferSocket;
 
 public class HttpServer extends Thread {
     private final int firstByte;
@@ -41,6 +41,7 @@ public class HttpServer extends Thread {
                 }
                 handleHttpsConnect(host, port, clientSocket);
             } else {
+                line = String.valueOf((char) firstByte) + line;
                 handleHttp(line, bufferedReader, host, port, clientSocket);
             }
         } catch (IOException e) {
@@ -66,6 +67,7 @@ public class HttpServer extends Thread {
                 }
             }
         }
+        System.out.printf("HTTP Requesting %s:%s%n", host, port);
         Socket remoteSocket = new Socket(host, port);
         OutputStream outputStream = remoteSocket.getOutputStream();
         OutputStreamWriter writer = new OutputStreamWriter(outputStream);
@@ -82,10 +84,7 @@ public class HttpServer extends Thread {
         transferSocket(remoteSocket, clientSocket);
     }
 
-
-
-    private void handleHttpsConnect(String host, int port, Socket clientSocket)
-            throws IOException {
+    private void handleHttpsConnect(String host, int port, Socket clientSocket) throws IOException {
         System.out.println("HTTPS Connecting to https://" + host + ":" + port);
         clientSocket
                 .getOutputStream()
