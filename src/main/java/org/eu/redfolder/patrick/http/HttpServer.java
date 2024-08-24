@@ -1,6 +1,6 @@
 package org.eu.redfolder.patrick.http;
 
-import static org.eu.redfolder.patrick.socket.Sockets.transferSocket;
+import org.eu.redfolder.patrick.socket.Sockets;
 
 import java.io.*;
 import java.net.Socket;
@@ -81,7 +81,7 @@ public class HttpServer extends Thread {
                 });
         writer.write("\r\n");
         writer.flush();
-        transferSocket(remoteSocket, clientSocket);
+        Sockets.exchangeSocket(remoteSocket, clientSocket);
     }
 
     private void handleHttpsConnect(String host, int port, Socket clientSocket) throws IOException {
@@ -93,6 +93,6 @@ public class HttpServer extends Thread {
                                 .getBytes(StandardCharsets.UTF_8));
         clientSocket.getOutputStream().flush();
         Socket remoteSocket = new Socket(host, port);
-        transferSocket(remoteSocket, clientSocket);
+        Sockets.exchangeSocket(remoteSocket, clientSocket);
     }
 }

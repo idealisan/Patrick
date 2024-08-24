@@ -2,6 +2,7 @@ package org.eu.redfolder.patrick.socks5;
 
 import org.eu.redfolder.patrick.socket.Sockets;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
@@ -58,34 +59,61 @@ public class Socks5Server extends Thread {
         } else {
             throw new RuntimeException("Invalid handshake received for ATYP.");
         }
-        int port =
-                handshake[handshake.length - 2] << 8
-                        | (handshake[handshake.length - 1] & 0xff);
-        byte cmd=handshake[1];
+        int port = handshake[handshake.length - 2] << 8 | (handshake[handshake.length - 1] & 0xff);
+        byte cmd = handshake[1];
         handshake[1] = 0;
-        clientSocket.getOutputStream().write(handshake);
-        clientSocket.getOutputStream().flush();
+
         System.out.printf("SOCKS5 Connection %s:%s%n", inetAddress, port);
         if (cmd == 0x01) {
+            clientSocket.getOutputStream().write(handshake);
+            clientSocket.getOutputStream().flush();
             handleTCP(clientSocket, inetAddress, port);
         } else if (cmd == 0x03) {
-            handleUDP(clientSocket, inetAddress, port);
+            InetAddress localAddress = clientSocket.getLocalAddress();
+            int udpPort = handleUDP(localAddress);
+            byte[] bytes = localAddress.getAddress();
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byteArrayOutputStream.write(
+                    new byte[] {0x05, 0x00, 0x00, (byte) (bytes.length == 4 ? 0x01 : 0x04)});
+            byteArrayOutputStream.write(bytes);
+            byteArrayOutputStream.write(udpPort >>> 8);
+            byteArrayOutputStream.write(port);
+            byteArrayOutputStream.writeTo(clientSocket.getOutputStream());
+            clientSocket.getOutputStream().flush();
         } else {
             System.out.println("Unsupported CMD");
         }
     }
 
-    private void handleUDP(Socket clientSocket, InetAddress inetAddress, int port)
-            throws IOException {
-        DatagramSocket datagramSocket = new DatagramSocket(port, inetAddress);
-        while (!clientSocket.isClosed()) {
-            Sockets.transferSocket(clientSocket, datagramSocket);
-        }
+    private int handleUDP(InetAddress address) throws IOException {
+        DatagramSocket clientDatagramSocket = new DatagramSocket();
+        clientDatagramSocket.bind(new InetSocketAddress(address, 0));
+        Thread.ofVirtual()
+                .start(
+                        () -> {
+                            try {
+                                DatagramPacket clientPacket =
+                                        new DatagramPacket(
+                                                new byte[Short.MAX_VALUE], Short.MAX_VALUE);
+                                DatagramSocket remoteSocket = new DatagramSocket();
+                                DatagramPacket remotePacket =
+                                        new DatagramPacket(
+                                                new byte[Short.MAX_VALUE], Short.MAX_VALUE);
+                                Sockets.transferDatagram(
+                                        clientDatagramSocket,
+                                        clientPacket,
+                                        remoteSocket,
+                                        remotePacket);
+                            } catch (IOException e) {
+                                System.out.println(e.getMessage());
+                            }
+                        });
+        return clientDatagramSocket.getPort();
     }
 
     private void handleTCP(Socket clientSocket, InetAddress inetAddress, int port)
             throws IOException {
         Socket remoteSocket = new Socket(inetAddress, port);
-        Sockets.transferSocket(clientSocket, remoteSocket);
+        Sockets.exchangeSocket(clientSocket, remoteSocket);
     }
 }
