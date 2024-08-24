@@ -1,5 +1,7 @@
 package org.eu.redfolder.patrick.socket;
 
+import static org.eu.redfolder.patrick.threadPool.ThreadPool.pool;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -7,28 +9,29 @@ import java.net.Socket;
 
 public class Sockets {
     public static void transferSocket(Socket a, Socket b) {
-        new Thread(
+        pool.execute(
+                new Thread(
                         () -> {
                             try {
                                 a.getInputStream().transferTo(b.getOutputStream());
                             } catch (IOException e) {
-                                throw new RuntimeException(e);
+                                System.out.println(e.getMessage());
                             }
-                        })
-                .start();
-        new Thread(
+                        }));
+        pool.execute(
+                new Thread(
                         () -> {
                             try {
                                 b.getInputStream().transferTo(a.getOutputStream());
                             } catch (IOException e) {
-                                throw new RuntimeException(e);
+                                System.out.println(e.getMessage());
                             }
-                        })
-                .start();
+                        }));
     }
 
     public static void transferSocket(Socket tcp, DatagramSocket udp) {
-        new Thread(
+        Thread.ofVirtual()
+                .start(
                         () -> {
                             byte[] buffer = new byte[Short.MAX_VALUE * 2 - 1];
                             while (!tcp.isClosed()) {
@@ -41,9 +44,9 @@ public class Sockets {
                                     throw new RuntimeException(e);
                                 }
                             }
-                        })
-                .start();
-        new Thread(
+                        });
+        Thread.ofVirtual()
+                .start(
                         () -> {
                             byte[] buffer = new byte[Short.MAX_VALUE * 2 - 1];
                             try {
@@ -59,7 +62,6 @@ public class Sockets {
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
                             }
-                        })
-                .start();
+                        });
     }
 }

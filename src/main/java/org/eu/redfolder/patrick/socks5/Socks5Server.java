@@ -32,8 +32,8 @@ public class Socks5Server extends Thread {
             if (!supportNoAuth) {
                 throw new RuntimeException("No supported authentication method found");
             }
-            int ver = inputStream.read();
-            int method = inputStream.read();
+            clientSocket.getOutputStream().write(new byte[] {0x05, 0x00});
+            clientSocket.getOutputStream().flush();
             handleTunnel(clientSocket);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -42,7 +42,11 @@ public class Socks5Server extends Thread {
 
     private void handleTunnel(Socket clientSocket) throws IOException {
         InputStream clientInputStream = clientSocket.getInputStream();
-        byte[] handshake = clientInputStream.readAllBytes();
+        while (clientInputStream.available() <= 0) {
+            Thread.yield();
+        }
+        byte[] handshake = new byte[clientInputStream.available()];
+        clientInputStream.read(handshake);
         byte[] address = Arrays.copyOfRange(handshake, 4, handshake.length - 2);
         InetAddress inetAddress;
         if (handshake[3] == 0x01 || handshake[3] == 0x04) {
@@ -55,14 +59,16 @@ public class Socks5Server extends Thread {
             throw new RuntimeException("Invalid handshake received for ATYP.");
         }
         int port =
-                handshake[handshake.length - 2] & 0xff << 8
-                        | handshake[handshake.length - 1] & 0xff;
-        handshake[2] = 0;
+                handshake[handshake.length - 2] << 8
+                        | (handshake[handshake.length - 1] & 0xff);
+        byte cmd=handshake[1];
+        handshake[1] = 0;
         clientSocket.getOutputStream().write(handshake);
         clientSocket.getOutputStream().flush();
-        if (handshake[1] == 0x01) {
+        System.out.printf("SOCKS5 Connection %s:%s%n", inetAddress, port);
+        if (cmd == 0x01) {
             handleTCP(clientSocket, inetAddress, port);
-        } else if (handshake[1] == 0x03) {
+        } else if (cmd == 0x03) {
             handleUDP(clientSocket, inetAddress, port);
         } else {
             System.out.println("Unsupported CMD");

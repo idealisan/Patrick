@@ -44,8 +44,8 @@ public class HttpServer extends Thread {
                 line = String.valueOf((char) firstByte) + line;
                 handleHttp(line, bufferedReader, host, port, clientSocket);
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (Throwable e) {
+            System.out.println(e.getMessage());
         }
     }
 
