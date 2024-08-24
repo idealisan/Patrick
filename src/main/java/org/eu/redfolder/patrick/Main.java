@@ -15,9 +15,9 @@ public class Main {
             InputStream inputStream = clientSocket.getInputStream();
             int firstByte = inputStream.read();
             if (firstByte == 0x05) {
-                Thread.ofVirtual().start(() -> new Socks5Server(clientSocket).run());
+                Thread.ofVirtual().start(new Socks5Server(clientSocket));
             } else {
-                Thread.ofVirtual().start(() -> new HttpServer(firstByte, clientSocket).run());
+                Thread.ofVirtual().start(new HttpServer(firstByte, clientSocket));
             }
         }
     }

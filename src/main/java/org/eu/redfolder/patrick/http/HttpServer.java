@@ -7,7 +7,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-public class HttpServer extends Thread {
+public class HttpServer implements Runnable {
     private final int firstByte;
     private final Socket clientSocket;
 

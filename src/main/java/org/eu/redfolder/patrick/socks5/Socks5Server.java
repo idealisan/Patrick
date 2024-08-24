@@ -9,7 +9,7 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-public class Socks5Server extends Thread {
+public class Socks5Server implements Runnable {
     private final Socket clientSocket;
 
     public Socks5Server(Socket clientSocket) {
